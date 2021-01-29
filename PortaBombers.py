@@ -20,7 +20,7 @@ bot = telepot.Bot(TOKEN) #activo l'escolta del bot
 
 def on(pin, chat_id):
     if str(chat_id) in usuari:
-        f = open('/home/oriol/porta/log/Connexions.log','a')
+        f = open('log/Connexions.log','a')
  #      GPIO.output(pin,GPIO.HIGH)
         time.sleep(2)
   #     GPIO.output(pin,GPIO.LOW)
@@ -30,7 +30,7 @@ def on(pin, chat_id):
         f.close()
         return "Autoritzat"
     else:
-        f = open('/home/oriol/porta/log/ConnexionsNoAutoritzades.log','a')
+        f = open('log/ConnexionsNoAutoritzades.log','a')
         #Registre accessos
         id = str('\n' + str(chat_id) + " No Autoritzat -> " + time.strftime("%H:%M:%S"))
         f.write(id)
@@ -38,7 +38,7 @@ def on(pin, chat_id):
         return "No Autoritzat"
 
 def off(pin, chat_id, command):
-    f = open('/home/oriol/porta/log/ConnexionsNoAutoritzades.log','a')
+    f = open('log/ConnexionsNoAutoritzades.log','a')
    #GPIO.output(pin,GPIO.LOW)
     if usuari[str(chat_id)]:
         #Registre accessos
@@ -74,7 +74,7 @@ while 1:
     try:
         time.sleep(10)
     except KeyboardInterrupt:
-        f = open('/home/oriol/porta/log/Interrupcions.log','a')
+        f = open('log/Interrupcions.log','a')
         id = str('\n'+" Programa interrumput per teclat" + time.strftime("%H:%M:%S"))
         f.write(id)
         f.close()
@@ -82,7 +82,7 @@ while 1:
         exit()
     except:
         #Registre error
-        f = open('/home/oriol/porta/log/Interrupcions.log','a')
+        f = open('log/Interrupcions.log','a')
         id = str('\n'+" Programa interrumput per algun error" + time.strftime("%H:%M:%S"))
         f.write(id)
         f.close()
