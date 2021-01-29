@@ -86,6 +86,4 @@ while 1:
         id = str('\n'+" Programa interrumput per algun error" + time.strftime("%H:%M:%S"))
         f.write(id)
         f.close()
-        print('Other error or exception occured!')
 #GPIO.cleanup()
-
