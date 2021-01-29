@@ -1,0 +1,5 @@
+usuari = {
+	"" : "Oriol",
+	"" : "Marc",
+}
+TOKEN = ''
