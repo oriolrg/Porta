@@ -5,11 +5,11 @@ import time
 import telepot
 #import RPi.GPIO as GPIO
 import time
-from users import usuari, TOKEN
+from config.users import usuari, TOKEN
 
 #Usuaris
 
-# capto el token de la linea de comandos
+
 
 bot = telepot.Bot(TOKEN) #activo l'escolta del bot
 
