@@ -28,6 +28,8 @@ def on(pin, chat_id):
         id = str('\n' + str(chat_id) + ' ' + usuari[str(chat_id)] + " Autoritzat -> " + time.strftime("%H:%M:%S"))
         f.write(id)
         f.close()
+        for user in usuari:
+            bot.sendMessage(user, "Porta Activada per "+usuari[str(chat_id)])
         return "Autoritzat"
     else:
         f = open('log/ConnexionsNoAutoritzades.log','a')
@@ -35,6 +37,8 @@ def on(pin, chat_id):
         id = str('\n' + str(chat_id) + " No Autoritzat -> " + time.strftime("%H:%M:%S"))
         f.write(id)
         f.close()
+        for user in usuari:
+            bot.sendMessage(user, "Intent no autoritzat " + str(chat_id))
         return "No Autoritzat"
 
 def off(pin, chat_id, command):
@@ -46,6 +50,8 @@ def off(pin, chat_id, command):
         f.write(id)
     else:
         #Registre accessos
+        for user in usuari:
+            bot.sendMessage(user, "Intent no autoritzat " + str(chat_id))
         id = str('\n' + str(chat_id) + " Cadena incorrecta <<" + command + ">>" + time.strftime("%H:%M:%S"))
         f.write(id)
     f.close()
@@ -62,6 +68,7 @@ def handle(msg):
     if command == 'on' or command =='On':
         #Si cadena correcte crido funcio obertura i envio missatge
         bot.sendMessage(chat_id, on(7,chat_id))
+        #bot.sendMessage(472924378, "Porta Activada, si ho reps ja diras algo per whatsap marc, estic fent proves")
     else:
         #Si cadena incorrecta crido funcio error i envio missatge
         bot.sendMessage(chat_id, off(7,chat_id, command))
