@@ -1,5 +1,6 @@
 #!/bin/bash
 # Instalació Porta
+# crontab exec a l'arrancar @reboot python3 /XXX/XX/Porta/OberturaPorta.py
 
 cp users\ copy.py config/users.py
 mkdir log
