@@ -13,4 +13,7 @@ usuari = {
     "2040569793" : "Eli",
     "929227034" : "Xavi Mas",
 }
+administradors = {
+	"3758341",
+}
 TOKEN = '1686033903:AAGA4uJiYyjnpac8HWfKZo2N9JuJTwPWKSA'

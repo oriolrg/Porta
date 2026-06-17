@@ -1,11 +1,22 @@
 #coder :- Oriol Riu
 
+import os
 import sys
 import time
 import telepot
 import RPi.GPIO as GPIO
 import time
-from config.users import usuari, TOKEN
+from config.users import usuari, administradors, TOKEN
+
+USERS_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'users.py')
+ADMIN_HELP = """Comandes administrador:
+Ajuda - mostra aquesta ajuda
+Llista - llista usuaris i administradors
+Nou:<codi> - afegeix un usuari nou
+Nou:<codi>:<nom> - afegeix un usuari nou amb nom
+Elimina:<codi> - elimina un usuari
+Admin:<codi> - dona rol administrador
+NoAdmin:<codi> - treu rol administrador"""
 
 #Usuaris
 
@@ -17,6 +28,98 @@ bot = telepot.Bot(TOKEN) #activo l'escolta del bot
 GPIO.setmode(GPIO.BOARD)
 # Activo GPIO output channel
 GPIO.setup(7, GPIO.OUT)
+
+def es_admin(chat_id):
+    return str(chat_id) in administradors
+
+def guardar_configuracio():
+    with open(USERS_CONFIG, 'w') as f:
+        f.write('usuari = {\n')
+        for user_id, nom in usuari.items():
+            f.write('\t"{0}" : "{1}",\n'.format(user_id, nom.replace('"', '\\"')))
+        f.write('}\n')
+        f.write('administradors = {\n')
+        for user_id in administradors:
+            f.write('\t"{0}",\n'.format(user_id))
+        f.write('}\n')
+        f.write("TOKEN = '{0}'\n".format(TOKEN))
+
+def notificar_administradors(missatge):
+    for user_id in administradors:
+        if user_id in usuari:
+            bot.sendMessage(user_id, missatge)
+
+def usuari_desconegut(chat_id, command):
+    f = open('/home/pi/Porta/log/ConnexionsNoAutoritzades.log','a')
+    id = str('\n' + str(chat_id) + " No Autoritzat <<" + command + ">> " + time.strftime("%H:%M:%S"))
+    f.write(id)
+    f.close()
+    notificar_administradors("Intent no Autoritzat " + str(chat_id) + "\nPer donar-lo d'alta: Nou:" + str(chat_id))
+    return "No Autoritzat"
+
+def llistar_usuaris():
+    linies = ["Usuaris:"]
+    for user_id, nom in usuari.items():
+        rol = " admin" if user_id in administradors else ""
+        linies.append(user_id + " - " + nom + rol)
+    return "\n".join(linies)
+
+def afegir_usuari(parametres):
+    parts = parametres.split(':', 1)
+    user_id = parts[0].strip()
+    nom = parts[1].strip() if len(parts) > 1 and parts[1].strip() else "Usuari " + user_id
+    if not user_id:
+        return "Falta el codi d'usuari"
+    if user_id in usuari:
+        return "Aquest usuari ja existeix: " + user_id
+    usuari[user_id] = nom
+    guardar_configuracio()
+    return "Usuari afegit: " + user_id + " - " + nom
+
+def eliminar_usuari(user_id):
+    user_id = user_id.strip()
+    if user_id == "3758341":
+        return "No es pot eliminar l'administrador principal"
+    if user_id not in usuari:
+        return "Aquest usuari no existeix: " + user_id
+    nom = usuari[user_id]
+    del usuari[user_id]
+    administradors.discard(user_id)
+    guardar_configuracio()
+    return "Usuari eliminat: " + user_id + " - " + nom
+
+def assignar_admin(user_id):
+    user_id = user_id.strip()
+    if user_id not in usuari:
+        return "Aquest usuari no existeix: " + user_id
+    administradors.add(user_id)
+    guardar_configuracio()
+    return "Administrador afegit: " + user_id + " - " + usuari[user_id]
+
+def treure_admin(user_id):
+    user_id = user_id.strip()
+    if user_id == "3758341":
+        return "No es pot treure el rol a l'administrador principal"
+    if user_id not in administradors:
+        return "Aquest usuari no es administrador: " + user_id
+    administradors.remove(user_id)
+    guardar_configuracio()
+    return "Administrador eliminat: " + user_id
+
+def comanda_admin(command):
+    if command == 'Ajuda':
+        return ADMIN_HELP
+    if command == 'Llista':
+        return llistar_usuaris()
+    if command.startswith('Nou:'):
+        return afegir_usuari(command[4:])
+    if command.startswith('Elimina:'):
+        return eliminar_usuari(command[8:])
+    if command.startswith('Admin:'):
+        return assignar_admin(command[6:])
+    if command.startswith('NoAdmin:'):
+        return treure_admin(command[8:])
+    return None
 
 def on(pin, chat_id):
     if str(chat_id) in usuari:
@@ -44,7 +147,7 @@ def on(pin, chat_id):
 def off(pin, chat_id, command):
     f = open('/home/pi/Porta/log/ConnexionsNoAutoritzades.log','a')
     GPIO.output(pin,GPIO.LOW)
-    if usuari[str(chat_id)]:
+    if str(chat_id) in usuari:
         #Registre accessos
         id = str('\n' + str(chat_id) + ' ' + usuari[str(chat_id)] + " Cadena incorrecta <<" + command + ">> " + time.strftime("%H:%M:%S"))
         f.write(id)
@@ -63,7 +166,13 @@ GPIO.setup(7, GPIO.OUT)
 def handle(msg):
     chat_id = msg['chat']['id']
     command = msg['text']
-    if command == 'on' or command =='On':
+    if str(chat_id) not in usuari:
+        bot.sendMessage(chat_id, usuari_desconegut(chat_id, command))
+        return
+    resposta_admin = comanda_admin(command) if es_admin(chat_id) else None
+    if resposta_admin:
+        bot.sendMessage(chat_id, resposta_admin)
+    elif command.lower() == 'on':
         #Si cadena correcte crido funcio obertura i envio missatge
         bot.sendMessage(chat_id, on(7,chat_id))
     else:
