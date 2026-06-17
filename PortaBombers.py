@@ -6,9 +6,10 @@ import time
 import telepot
 import RPi.GPIO as GPIO
 import time
-from config.users import usuari, administradors, TOKEN
+from config.users import usuari, administradors
 
 USERS_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config', 'users.py')
+ENV_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
 ADMIN_HELP = """Comandes administrador:
 Ajuda - mostra aquesta ajuda
 Llista - llista usuaris i administradors
@@ -22,6 +23,22 @@ NoAdmin:<codi> - treu rol administrador"""
 
 # capto el token de la linea de comandos
 
+def carregar_token():
+    token = os.environ.get('TELEGRAM_TOKEN')
+    if token:
+        return token
+    if os.path.exists(ENV_CONFIG):
+        with open(ENV_CONFIG) as f:
+            for linia in f:
+                linia = linia.strip()
+                if not linia or linia.startswith('#') or '=' not in linia:
+                    continue
+                clau, valor = linia.split('=', 1)
+                if clau.strip() == 'TELEGRAM_TOKEN':
+                    return valor.strip().strip('"').strip("'")
+    raise RuntimeError("Falta TELEGRAM_TOKEN al fitxer .env")
+
+TOKEN = carregar_token()
 bot = telepot.Bot(TOKEN) #activo l'escolta del bot
 
 # Configuracio per utilitzar Raspberry Pi board pin numbers
@@ -42,7 +59,6 @@ def guardar_configuracio():
         for user_id in administradors:
             f.write('\t"{0}",\n'.format(user_id))
         f.write('}\n')
-        f.write("TOKEN = '{0}'\n".format(TOKEN))
 
 def notificar_administradors(missatge):
     for user_id in administradors:
