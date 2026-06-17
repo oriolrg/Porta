@@ -14,7 +14,6 @@ ADMIN_HELP = """Comandes administrador:
 Ajuda - mostra aquesta ajuda
 Info - mostra quina copia del programa s'esta executant
 Llista - llista usuaris i administradors
-Nou:<codi> - afegeix un usuari nou
 Nou:<codi>:<nom> - afegeix un usuari nou amb nom
 Elimina:<codi> - elimina un usuari
 Admin:<codi> - dona rol administrador
@@ -71,7 +70,7 @@ def usuari_desconegut(chat_id, command):
     id = str('\n' + str(chat_id) + " No Autoritzat <<" + command + ">> " + time.strftime("%H:%M:%S"))
     f.write(id)
     f.close()
-    notificar_administradors("Intent no Autoritzat " + str(chat_id) + "\nPer donar-lo d'alta: Nou:" + str(chat_id))
+    notificar_administradors("Intent no Autoritzat " + str(chat_id) + "\nPer donar-lo d'alta: Nou:" + str(chat_id) + ":Nom usuari")
     return "No Autoritzat"
 
 def llistar_usuaris():
@@ -96,9 +95,11 @@ def info_programa(chat_id):
 def afegir_usuari(parametres):
     parts = parametres.split(':', 1)
     user_id = parts[0].strip()
-    nom = parts[1].strip() if len(parts) > 1 and parts[1].strip() else "Usuari " + user_id
+    nom = parts[1].strip() if len(parts) > 1 else ""
     if not user_id:
         return "Falta el codi d'usuari"
+    if not nom:
+        return "Falta el nom de l'usuari. Format: Nou:<codi>:<nom>"
     if user_id in usuari:
         return "Aquest usuari ja existeix: " + user_id
     usuari[user_id] = nom
@@ -156,17 +157,20 @@ def comanda_admin(command, chat_id):
 
 def on(pin, chat_id):
     if str(chat_id) in usuari:
+        nom_usuari = usuari[str(chat_id)]
         f = open('/home/pi/Porta/log/Connexions.log','a')
         GPIO.output(pin,GPIO.HIGH)
         time.sleep(2)
         GPIO.output(pin,GPIO.LOW)
         #Registre accessos
-        id = str('\n' + str(chat_id) + ' ' + usuari[str(chat_id)] + " Autoritzat -> " + time.strftime("%H:%M:%S"))
+        id = str('\n' + str(chat_id) + ' ' + nom_usuari + " Autoritzat -> " + time.strftime("%H:%M:%S"))
         f.write(id)
         f.close()
-        for  user in usuari:
-            bot.sendMessage(user, "Porta Activada per "+usuari[str(chat_id)])
-        return "Autoritzat"
+        bot.sendMessage(chat_id, "Porta Activada")
+        for user in administradors:
+            if user in usuari:
+                bot.sendMessage(user, "Porta Activada per " + nom_usuari)
+        return None
     else:
         f = open('/home/pi/Porta/log/ConnexionsNoAutoritzades.log','a')
         #Registre accessos
@@ -207,7 +211,9 @@ def handle(msg):
         bot.sendMessage(chat_id, resposta_admin)
     elif command.lower() == 'on':
         #Si cadena correcte crido funcio obertura i envio missatge
-        bot.sendMessage(chat_id, on(7,chat_id))
+        resposta = on(7,chat_id)
+        if resposta:
+            bot.sendMessage(chat_id, resposta)
     else:
         #Si cadena incorrecta crido funcio error i envio missatge
         bot.sendMessage(chat_id, off(7,chat_id, command))
