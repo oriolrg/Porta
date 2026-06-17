@@ -12,6 +12,7 @@ USERS_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config'
 ENV_CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
 ADMIN_HELP = """Comandes administrador:
 Ajuda - mostra aquesta ajuda
+Info - mostra quina copia del programa s'esta executant
 Llista - llista usuaris i administradors
 Nou:<codi> - afegeix un usuari nou
 Nou:<codi>:<nom> - afegeix un usuari nou amb nom
@@ -80,6 +81,18 @@ def llistar_usuaris():
         linies.append(user_id + " - " + nom + rol)
     return "\n".join(linies)
 
+def info_programa(chat_id):
+    return "\n".join([
+        "Info PortaBombers",
+        "Programa: " + os.path.abspath(__file__),
+        "Directori: " + os.getcwd(),
+        "Config usuaris: " + USERS_CONFIG,
+        "Usuari actual: " + str(chat_id),
+        "Es admin: " + ("si" if es_admin(chat_id) else "no"),
+        "Usuaris carregats: " + str(len(usuari)),
+        "Administradors carregats: " + ", ".join(administradors),
+    ])
+
 def afegir_usuari(parametres):
     parts = parametres.split(':', 1)
     user_id = parts[0].strip()
@@ -122,18 +135,22 @@ def treure_admin(user_id):
     guardar_configuracio()
     return "Administrador eliminat: " + user_id
 
-def comanda_admin(command):
-    if command == 'Ajuda':
+def comanda_admin(command, chat_id):
+    command = command.strip()
+    command_lower = command.lower()
+    if command_lower == 'ajuda':
         return ADMIN_HELP
-    if command == 'Llista':
+    if command_lower == 'info':
+        return info_programa(chat_id)
+    if command_lower == 'llista':
         return llistar_usuaris()
-    if command.startswith('Nou:'):
+    if command_lower.startswith('nou:'):
         return afegir_usuari(command[4:])
-    if command.startswith('Elimina:'):
+    if command_lower.startswith('elimina:'):
         return eliminar_usuari(command[8:])
-    if command.startswith('Admin:'):
+    if command_lower.startswith('admin:'):
         return assignar_admin(command[6:])
-    if command.startswith('NoAdmin:'):
+    if command_lower.startswith('noadmin:'):
         return treure_admin(command[8:])
     return None
 
@@ -181,11 +198,11 @@ GPIO.setup(7, GPIO.OUT)
 
 def handle(msg):
     chat_id = msg['chat']['id']
-    command = msg['text']
+    command = msg['text'].strip()
     if str(chat_id) not in usuari:
         bot.sendMessage(chat_id, usuari_desconegut(chat_id, command))
         return
-    resposta_admin = comanda_admin(command) if es_admin(chat_id) else None
+    resposta_admin = comanda_admin(command, chat_id) if es_admin(chat_id) else None
     if resposta_admin:
         bot.sendMessage(chat_id, resposta_admin)
     elif command.lower() == 'on':
